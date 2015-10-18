@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int main( int argc, char * argv [] ) {
+
+	if (argc < 2)
+	{
+		printf("ERROR: Please include two (2) integer paramters.\n");
+		exit(0);
+	}
+
+	int num = atoi(argv[1]);
+	int max = atoi(argv[2]);
+	int list[num];
+	int i,j;
+
+	srand(time(NULL));
+	
+	for ( i = 0; i < num; ++i)
+	{
+		list[i] = rand()%max;
+	}
+
+	for( j = 0; j < num; j++) {
+    
+        printf("%d\n", list[j]);
+
+    } 
+    return 0;
+}
