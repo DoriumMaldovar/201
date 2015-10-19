@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
-#include <unistd.h>
+// #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
 // #include <stdbool.h>
@@ -52,11 +52,11 @@ void printList(){
 	conductor = root;
 	int help = 0;
 	while ( conductor->next != 0 ) {
-	    printf( "%d, \t", conductor->x );
+	    printf( "%d=>", conductor->x );
 	    conductor = conductor->next;
 	    help++;
 	}
-	printf("NUM ITEMS: %d\n",help );
+	printf("END\n" );
 	
 }
 
@@ -186,10 +186,6 @@ int main(int argc, char * argv [] )
 
 	
 	pthread_t ath,vth;	// this is our thread identifier
-	int i = 0;
-
-	
-
 
 	pthread_create(&ath,NULL,create,threadParams);
 	pthread_create(&vth,NULL,verify,threadParams);

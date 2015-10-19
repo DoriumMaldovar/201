@@ -31,21 +31,10 @@ int numTotalNodes;
 int turn = 1; // 1 Denotes it is create time, 2 Denotes it is verify time, 0 Denotes end of program
 
 int listLength()
-{	
-	if (root != NULL){
-		conductor = root;
-	  	int help = 0;
+{
 
-		while ( conductor->next != 0 ) {
-		    conductor = conductor->next;
-		    help++;
-		}
-		tail = conductor;
-		return help;
-	
-	}else{
-		return 0;
-	}
+	return 0;
+
 }
 
 void printList(){
@@ -71,7 +60,7 @@ void *verify(void *arg)
 	// }
 	printf("%d\n",pthread_mutex_trylock(&mutex) );
 	printf("%d\n",pthread_mutex_unlock(&mutex) );
-	if( !pthread_mutex_trylock(&mutex) && 0<20 && !pthread_mutex_unlock(&mutex)){
+	if(!pthread_mutex_trylock(&mutex) && (listLength() != 0)  && !pthread_mutex_unlock(&mutex)){
 		printf("lock acquired and releaed\n");
 	}else{
 		printf("lock not acquired\n");
@@ -125,7 +114,7 @@ int main(int argc, char * argv [] )
 
 
 	// pthread_create(&ath,NULL,create,threadParams);
-	pthread_create(&vth,NULL,verify,threadParams);
+	pthread_create(&vth,NULL,&verify,threadParams);
 	
 	// pthread_join(ath,NULL);
 	pthread_join(vth,NULL);

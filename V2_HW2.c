@@ -24,14 +24,14 @@ typedef struct threadParameters
 } threadParameters;
 
 node *root;
-node *conductor;
-node *tail;
 pthread_mutex_t mutex;
 int numTotalNodes;
 int turn = 1; // 1 Denotes it is create time, 2 Denotes it is verify time, 0 Denotes end of program
 
 int listLength()
 {	
+	node *conductor;
+	// printf("checking length of list\n");
 	if (root != NULL){
 		conductor = root;
 	  	int help = 0;
@@ -40,15 +40,19 @@ int listLength()
 		    conductor = conductor->next;
 		    help++;
 		}
-		tail = conductor;
+		// printf("LIST LENGTH IS %d\n",help );
+		pthread_mutex_unlock(&mutex);
 		return help;
 	
 	}else{
+		// printf("LIST LENGTH IS %d \n",0 );
+		pthread_mutex_unlock(&mutex);
 		return 0;
 	}
 }
 
 void printList(){
+	node *conductor;
 	conductor = root;
 	int help = 0;
 	while ( conductor->next != 0 ) {
@@ -64,26 +68,35 @@ void printList(){
 /* This is our thread function.  It is like main(), but for a thread */
 void *create(void *arg)
 {	
+	node *conductor;
 
 	srand(time(NULL));
 	threadParameters* threadParams = (threadParameters*) arg;
+
+	pthread_mutex_lock(&mutex);
+	root = malloc( sizeof(struct node) );
+	root->x = rand()%threadParams->max;
+	conductor = root; 
+	root->next = conductor;
+	conductor->x =  rand()%threadParams->max;
+	conductor->next = 0; 
+	pthread_mutex_unlock(&mutex);
 			
-	while (turn > 0){
-		if((turn == 1) && (pthread_mutex_trylock(&mutex))){
-			printf("Create has Mutex Lock.\n");
-			
-			if(root == NULL){
-				root = malloc( sizeof(struct node) );
-		    	root->x = rand()%threadParams->max;
-				conductor = root; 
-				root->next = conductor; 
-				conductor->next = 0; 
-			}else{
-				conductor = tail;
-			} 
-			while( listLength() < numTotalNodes )
+	while (turn != 0){
+		
+			while(!pthread_mutex_lock(&mutex) && (listLength() < numTotalNodes))
 			{
 				/* Creates a node at the end of the list */
+				// printf("yay\n");
+				pthread_mutex_lock(&mutex);
+				conductor = root;
+
+				while(conductor->next != 0){
+					// printf("%d=>",conductor->x );
+					conductor = conductor->next;
+				}
+				// printf("\n");
+				// sleep(1);
 		        conductor->next = malloc( sizeof(struct node) );  
 	
 		        conductor = conductor->next; 
@@ -94,11 +107,10 @@ void *create(void *arg)
 		        }
 		        conductor->next = 0;
 		        conductor->x = rand()%threadParams->max;
+		        printf("node added\n");
+		        pthread_mutex_unlock(&mutex);
+		        printf("released\n");
 			}
-			turn = 2;
-			printf("Create has released Mutex Lock.\n");
-			pthread_mutex_unlock(&mutex);
-		}
 	}
 	printf("~~~Create thread is kill.~~~\n");
 	return NULL;
@@ -106,44 +118,52 @@ void *create(void *arg)
 
 void *verify(void *arg)
 {		
+	node *conductor;
+	node *prev;
+
 	threadParameters* threadParams = (threadParameters*) arg;
-	while (turn > 0){
-		if (turn == 2 && pthread_mutex_trylock(&mutex)){
-			printf("Verify has Mutex Lock.\n");
-			if(listLength() != 0){
-				conductor = root;
-				// int counter = 0;
-				node *freeme;
-				node *nextNode;
-				while ( conductor->next != 0 ) {
+	while (turn != 0){
+		// printf("hi from verify\n");
+		
+
+		if(!pthread_mutex_lock(&mutex) && (listLength() != 0)){
+			// printf("hi\n");
+			// !pthread_mutex_lock(&mutex);
+			conductor = root;
+			// while(conductor->next != 0){
+			// 	prev = conductor;
+			// 	conductor = conductor->next;
+			// }
+			// printf("got them\n");
+			// !pthread_mutex_unlock(&mutex);
+			node *freeme;
+			node *nextNode;
+			while ( /*!pthread_mutex_lock(&mutex) && */(conductor->next != 0)  /*&& !pthread_mutex_unlock(&mutex) */) {
+				// printf("verifing\n");
+				// pthread_mutex_lock(&mutex);
+			    if ( abs((conductor->x - conductor->next->x)) <= threadParams->distanceBetweenNumbers )
+			    {
+			    	// counter++;
+			    	freeme = conductor->next;
+			    	nextNode = freeme->next;
+			    	free( freeme );
+			   		conductor->next = nextNode;
+			   		// printf("node deleted\n");
+			    }else{
+			    conductor = conductor->next;
+				}
+				
+			}
+			pthread_mutex_unlock(&mutex);
+		
+		}if(!pthread_mutex_lock(&mutex) && (listLength() == 100)){
+			// printf("error\n");
+			turn = 0;
+		}
 	
-				    if ( abs((conductor->x - conductor->next->x)) <= threadParams->distanceBetweenNumbers )
-				    {
-				    	// counter++;
-				    	freeme = conductor->next;
-				    	nextNode = freeme->next;
-				    	free( freeme );
-				   		conductor->next = nextNode;
-				    }else{
-				    conductor = conductor->next;
-					}
-				}
-				if (listLength() == numTotalNodes){
-					turn = 0;
-					printf("###Final list created, required nodes created, all criterion met.###\n");
-				}else{		
-					turn = 1;
-				}
-
-
-		}else{
-			turn = 1;
-		}
-		printf("Verify has released Mutex Lock.\n");
-		pthread_mutex_unlock(&mutex);
-		}
 	}
 	printf("~~~Verify thread is kill.~~~\n");
+
 	return NULL;
 }
 
@@ -191,8 +211,8 @@ int main(int argc, char * argv [] )
 	
 
 
-	pthread_create(&ath,NULL,create,threadParams);
-	pthread_create(&vth,NULL,verify,threadParams);
+	pthread_create(&ath,NULL,&create,threadParams);
+	pthread_create(&vth,NULL,&verify,threadParams);
 	
 	pthread_join(ath,NULL);
 	pthread_join(vth,NULL);
