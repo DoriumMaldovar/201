@@ -31,7 +31,7 @@ int turn = 1; // 1 Denotes it is create time, 2 Denotes it is verify time, 0 Den
 int listLength()
 {	
 	node *conductor;
-	// printf("checking length of list\n");
+	printf("checking length of list\n");
 	if (root != NULL){
 		conductor = root;
 	  	int help = 0;
@@ -41,12 +41,12 @@ int listLength()
 		    help++;
 		}
 		// printf("LIST LENGTH IS %d\n",help );
-		pthread_mutex_unlock(&mutex);
+		// pthread_mutex_unlock(&mutex);
 		return help;
 	
 	}else{
 		// printf("LIST LENGTH IS %d \n",0 );
-		pthread_mutex_unlock(&mutex);
+		// pthread_mutex_unlock(&mutex);
 		return 0;
 	}
 }
@@ -70,25 +70,30 @@ void *create(void *arg)
 {	
 	node *conductor;
 
+	printf("create thread made\n");
+
 	srand(time(NULL));
 	threadParameters* threadParams = (threadParameters*) arg;
 
 	pthread_mutex_lock(&mutex);
+	printf("create has lock, generating root\n");
 	root = malloc( sizeof(struct node) );
 	root->x = rand()%threadParams->max;
 	conductor = root; 
 	root->next = conductor;
 	conductor->x =  rand()%threadParams->max;
 	conductor->next = 0; 
+	printf("root generated, releasing lock\n");
 	pthread_mutex_unlock(&mutex);
 			
 	while (turn != 0){
-		
+			printf("Create: turn = %d\n", turn);
 			while(!pthread_mutex_lock(&mutex) && (listLength() < numTotalNodes))
 			{
 				/* Creates a node at the end of the list */
-				// printf("yay\n");
-				pthread_mutex_lock(&mutex);
+				// pthread_mutex_unlock(&mutex);
+				printf("yay\n");
+				// pthread_mutex_lock(&mutex);
 				conductor = root;
 
 				while(conductor->next != 0){
@@ -108,8 +113,14 @@ void *create(void *arg)
 		        conductor->next = 0;
 		        conductor->x = rand()%threadParams->max;
 		        printf("node added\n");
+		        
+		        // printf("released\n");
 		        pthread_mutex_unlock(&mutex);
-		        printf("released\n");
+			}
+			if (pthread_mutex_trylock(&mutex))
+			{
+				
+			pthread_mutex_unlock(&mutex)		;	
 			}
 	}
 	printf("~~~Create thread is kill.~~~\n");
@@ -154,12 +165,15 @@ void *verify(void *arg)
 				}
 				
 			}
-			pthread_mutex_unlock(&mutex);
+			
 		
-		}if(!pthread_mutex_lock(&mutex) && (listLength() == 100)){
+		}
+		pthread_mutex_unlock(&mutex);
+		if(!pthread_mutex_lock(&mutex) && (listLength() == 100)){
 			// printf("error\n");
 			turn = 0;
 		}
+		pthread_mutex_unlock(&mutex);
 	
 	}
 	printf("~~~Verify thread is kill.~~~\n");
@@ -199,7 +213,7 @@ int main(int argc, char * argv [] )
 			printf("Error, cannot create nodes. Please ensure your distance is less than your maximum.\n");
 			exit(0);
 	}
-	printf("Distance between nodes has been set to: %d\n", threadParams->distanceBetweenNumbers);
+//	printf("Distance between nodes has been set to: %d\n", threadParams->distanceBetweenNumbers);
 	
 
 	numTotalNodes = threadParams->numNodes;
